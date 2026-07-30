@@ -6,6 +6,15 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
 
+/**
+ * Validated request to store a redirect analytics event.
+ *
+ * @param shortCode resolved short code
+ * @param originalUrl redirect destination
+ * @param timestamp redirect timestamp
+ * @param ipAddress client IP address
+ * @param browser client user agent
+ */
 public record AnalyticsEventRequest(
         @NotBlank(message = "shortCode is required")
         @Pattern(regexp = "^[0-9A-Za-z]{8}$", message = "shortCode must be an 8-character Base62 value")

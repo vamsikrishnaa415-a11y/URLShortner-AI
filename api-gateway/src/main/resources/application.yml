@@ -5,15 +5,15 @@ spring:
     gateway:
       routes:
         - id: url-service
-          uri: http://localhost:8081
+          uri: ${URL_SERVICE_URI:http://localhost:8081}
           predicates:
             - Path=/api/v1/urls/**
         - id: url-redirect
-          uri: http://localhost:8081
+          uri: ${URL_SERVICE_URI:http://localhost:8081}
           predicates:
             - Path=/{shortCode:[0-9A-Za-z]{8}}
         - id: analytics-service
-          uri: http://localhost:8082
+          uri: ${ANALYTICS_SERVICE_URI:http://localhost:8082}
           predicates:
             - Path=/api/v1/analytics/**,/analytics/events/**
 
