@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: url-service
+  datasource:
+    url: jdbc:h2:mem:urlshortener
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: none
+  h2:
+    console:
+      enabled: true
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
