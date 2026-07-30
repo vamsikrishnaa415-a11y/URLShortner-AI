@@ -67,6 +67,18 @@ Commit 1 contains documentation only and has no executable application.
 
 Future implementation commits will document Maven commands, service ports, profiles, and H2 configuration.
 
+# API Documentation
+
+Swagger UI is available after starting the services:
+
+- API Gateway (aggregates downstream APIs): `http://localhost:8080/swagger-ui/index.html`
+- URL Service: `http://localhost:8081/swagger-ui/index.html`
+- Analytics Service: `http://localhost:8082/swagger-ui/index.html`
+
+Each service also exposes its OpenAPI document at `/v3/api-docs`. The gateway makes the
+downstream documents available at `/url-service/v3/api-docs` and
+`/analytics-service/v3/api-docs`.
+
 # API Summary (placeholder)
 
 The planned REST API surface includes:

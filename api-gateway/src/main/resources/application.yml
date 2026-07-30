@@ -16,6 +16,18 @@ spring:
           uri: ${ANALYTICS_SERVICE_URI:http://localhost:8082}
           predicates:
             - Path=/api/v1/analytics/**,/analytics/events/**
+        - id: url-service-openapi
+          uri: ${URL_SERVICE_URI:http://localhost:8081}
+          predicates:
+            - Path=/url-service/v3/api-docs
+          filters:
+            - StripPrefix=1
+        - id: analytics-service-openapi
+          uri: ${ANALYTICS_SERVICE_URI:http://localhost:8082}
+          predicates:
+            - Path=/analytics-service/v3/api-docs
+          filters:
+            - StripPrefix=1
 
 server:
   port: 8080
@@ -29,3 +41,11 @@ management:
 logging:
   level:
     org.springframework.cloud.gateway: WARN
+
+springdoc:
+  swagger-ui:
+    urls:
+      - name: URL Service
+        url: /url-service/v3/api-docs
+      - name: Analytics Service
+        url: /analytics-service/v3/api-docs
