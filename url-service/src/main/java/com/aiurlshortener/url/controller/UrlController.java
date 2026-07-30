@@ -48,7 +48,7 @@ public class UrlController {
     public ResponseEntity<Void> redirect(@PathVariable("shortCode") String shortCode) {
         String originalUrl = urlService.resolveOriginalUrl(shortCode);
         return ResponseEntity.status(HttpStatus.FOUND)
-                .header(HttpHeaders.LOCATION, originalUrl)
+                .header(HttpHeaders.LOCATION, originalUrl) 
                 .build();
     }
 }
