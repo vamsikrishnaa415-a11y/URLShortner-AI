@@ -34,7 +34,7 @@ public class AnalyticsController {
 
     @GetMapping("/api/v1/analytics/{code}")
     public AnalyticsSummaryResponse getAnalytics(
-            @PathVariable @Pattern(regexp = "^[0-9A-Za-z]{8}$", message = "code must be an 8-character Base62 value")
+            @PathVariable("code") @Pattern(regexp = "^[0-9A-Za-z]{8}$", message = "code must be an 8-character Base62 value")
             String code
     ) {
         return analyticsService.getAnalytics(code);

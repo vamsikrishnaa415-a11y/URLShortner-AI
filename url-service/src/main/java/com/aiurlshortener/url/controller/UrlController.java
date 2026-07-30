@@ -4,8 +4,8 @@ import com.aiurlshortener.url.dto.CreateShortUrlRequest;
 import com.aiurlshortener.url.dto.CreateShortUrlResponse;
 import com.aiurlshortener.url.service.UrlService;
 import jakarta.validation.Valid;
-import java.net.URI;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -22,7 +22,7 @@ public class UrlController {
         this.urlService = urlService;
     }
 
-    @PostMapping("/url")
+    @PostMapping("/api/v1/urls")
     public ResponseEntity<CreateShortUrlResponse> createShortUrl(@Valid @RequestBody CreateShortUrlRequest request) {
         CreateShortUrlResponse response = urlService.createShortUrl(request);
         HttpStatus status = response.created() ? HttpStatus.CREATED : HttpStatus.OK;
@@ -30,9 +30,10 @@ public class UrlController {
     }
 
     @GetMapping("/{shortCode}")
-    public ResponseEntity<Void> redirect(@PathVariable String shortCode) {
+    public ResponseEntity<Void> redirect(@PathVariable("shortCode") String shortCode) {
+        String originalUrl = urlService.resolveOriginalUrl(shortCode);
         return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(urlService.resolveOriginalUrl(shortCode)))
+            .header(HttpHeaders.LOCATION, originalUrl)
                 .build();
     }
 }

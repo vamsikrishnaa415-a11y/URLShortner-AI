@@ -4,6 +4,8 @@ import com.aiurlshortener.url.dto.CreateShortUrlRequest;
 import com.aiurlshortener.url.dto.CreateShortUrlResponse;
 import com.aiurlshortener.url.entity.UrlEntity;
 import com.aiurlshortener.url.event.UrlRedirectedEvent;
+import com.aiurlshortener.url.exception.DuplicateUrlException;
+import com.aiurlshortener.url.exception.ShortCodeGenerationException;
 import com.aiurlshortener.url.exception.ShortUrlNotFoundException;
 import com.aiurlshortener.url.mapper.UrlMapper;
 import com.aiurlshortener.url.repository.UrlRepository;
@@ -40,9 +42,10 @@ public class UrlServiceImpl implements UrlService {
     @Transactional
     public CreateShortUrlResponse createShortUrl(CreateShortUrlRequest request) {
         String originalUrl = request.originalUrl().trim();
-        return urlRepository.findByOriginalUrl(originalUrl)
-                .map(existingUrl -> urlMapper.toCreateShortUrlResponse(existingUrl, false))
-                .orElseGet(() -> createNewShortUrl(originalUrl));
+        if (urlRepository.findByOriginalUrl(originalUrl).isPresent()) {
+            throw new DuplicateUrlException(originalUrl);
+        }
+        return createNewShortUrl(originalUrl);
     }
 
     @Override
@@ -66,7 +69,7 @@ public class UrlServiceImpl implements UrlService {
             }
         }
 
-        throw new IllegalStateException("Unable to generate a unique short code");
+        throw new ShortCodeGenerationException();
     }
 
     private String generateShortCode() {

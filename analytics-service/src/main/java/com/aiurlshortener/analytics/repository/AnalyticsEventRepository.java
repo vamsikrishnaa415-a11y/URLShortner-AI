@@ -7,4 +7,4 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface AnalyticsEventRepository extends JpaRepository<AnalyticsEventEntity, Long> {
 
     List<AnalyticsEventEntity> findByShortCodeOrderByTimestampDesc(String shortCode);
-}
+} 
