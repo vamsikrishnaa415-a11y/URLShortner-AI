@@ -42,7 +42,7 @@ class AnalyticsServiceIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.shortCode").value("A1b2C3d4"));
 
-        assertThat(analyticsEventRepository.findByShortCodeOrderByTimestampDesc("A1b2C3d4")).hasSize(1);
+        assertThat(analyticsEventRepository.countByShortCode("A1b2C3d4")).isEqualTo(1L);
 
         mockMvc.perform(get("/api/v1/analytics/A1b2C3d4"))
                 .andExpect(status().isOk())

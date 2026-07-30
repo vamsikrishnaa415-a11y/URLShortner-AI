@@ -18,7 +18,7 @@ class AnalyticsEventRepositoryTest {
     private AnalyticsEventRepository analyticsEventRepository;
 
     @Test
-    void returnsEventsForShortCodeInDescendingTimestampOrder() {
+    void countsEventsAndReturnsTheLatestEventForShortCode() {
         AnalyticsEventEntity olderEvent = analyticsEventRepository.save(new AnalyticsEventEntity(
                 "A1b2C3d4", "https://example.com/page", Instant.parse("2026-07-30T10:00:00Z"),
                 "203.0.113.10", "Mozilla/5.0"
@@ -28,8 +28,8 @@ class AnalyticsEventRepositoryTest {
                 "203.0.113.10", "Mozilla/5.0"
         ));
 
-        List<AnalyticsEventEntity> events = analyticsEventRepository.findByShortCodeOrderByTimestampDesc("A1b2C3d4");
-
-        assertThat(events).containsExactly(newerEvent, olderEvent);
+        assertThat(analyticsEventRepository.countByShortCode("A1b2C3d4")).isEqualTo(2L);
+        assertThat(analyticsEventRepository.findFirstByShortCodeOrderByTimestampDesc("A1b2C3d4"))
+            .containsSame(newerEvent);
     }
 }

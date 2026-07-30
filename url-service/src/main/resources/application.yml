@@ -7,11 +7,12 @@ spring:
     username: sa
     password:
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: create-drop
   h2:
     console:
-      enabled: true
+      enabled: false
 
 server:
   port: 8081
@@ -21,3 +22,7 @@ management:
     web:
       exposure:
         include: health,info
+
+logging:
+  level:
+    com.aiurlshortener.url: INFO

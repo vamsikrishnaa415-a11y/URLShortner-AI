@@ -12,14 +12,20 @@ import com.aiurlshortener.url.repository.UrlRepository;
 import com.aiurlshortener.url.util.RandomBase62Generator;
 import java.time.Instant;
 import org.springframework.context.ApplicationEventPublisher;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+/**
+ * Default URL creation and redirect-resolution service.
+ */
 public class UrlServiceImpl implements UrlService {
 
     private static final int MAX_SHORT_CODE_ATTEMPTS = 5;
     private static final int SHORT_CODE_LENGTH = 8;
+    private static final Logger LOGGER = LoggerFactory.getLogger(UrlServiceImpl.class);
 
     private final UrlRepository urlRepository;
     private final UrlMapper urlMapper;
@@ -43,6 +49,7 @@ public class UrlServiceImpl implements UrlService {
     public CreateShortUrlResponse createShortUrl(CreateShortUrlRequest request) {
         String originalUrl = request.originalUrl().trim();
         if (urlRepository.findByOriginalUrl(originalUrl).isPresent()) {
+            LOGGER.warn("Rejected duplicate URL creation request");
             throw new DuplicateUrlException(originalUrl);
         }
         return createNewShortUrl(originalUrl);
@@ -55,6 +62,7 @@ public class UrlServiceImpl implements UrlService {
                 .orElseThrow(() -> new ShortUrlNotFoundException(shortCode));
         urlEntity.incrementClickCount();
         applicationEventPublisher.publishEvent(new UrlRedirectedEvent(shortCode, Instant.now()));
+        LOGGER.info("Resolved shortCode={} clickCount={}", shortCode, urlEntity.getClickCount());
         return urlEntity.getOriginalUrl();
     }
 
@@ -65,6 +73,7 @@ public class UrlServiceImpl implements UrlService {
                 UrlEntity savedUrl = urlRepository.save(
                         new UrlEntity(shortCode, originalUrl, Instant.now())
                 );
+                LOGGER.info("Created short URL shortCode={}", savedUrl.getShortCode());
                 return urlMapper.toCreateShortUrlResponse(savedUrl, true);
             }
         }

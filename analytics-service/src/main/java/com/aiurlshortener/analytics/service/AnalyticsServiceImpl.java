@@ -5,12 +5,18 @@ import com.aiurlshortener.analytics.dto.AnalyticsEventResponse;
 import com.aiurlshortener.analytics.dto.AnalyticsSummaryResponse;
 import com.aiurlshortener.analytics.entity.AnalyticsEventEntity;
 import com.aiurlshortener.analytics.repository.AnalyticsEventRepository;
-import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+/**
+ * Default implementation for storing and summarizing analytics events.
+ */
 public class AnalyticsServiceImpl implements AnalyticsService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(AnalyticsServiceImpl.class);
 
     private final AnalyticsEventRepository analyticsEventRepository;
 
@@ -29,6 +35,8 @@ public class AnalyticsServiceImpl implements AnalyticsService {
                 request.browser()
         ));
 
+        LOGGER.info("Recorded analytics event for shortCode={}", savedEvent.getShortCode());
+
         return new AnalyticsEventResponse(
                 savedEvent.getId(),
                 savedEvent.getShortCode(),
@@ -42,11 +50,13 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     @Override
     @Transactional(readOnly = true)
     public AnalyticsSummaryResponse getAnalytics(String shortCode) {
-        List<AnalyticsEventEntity> events = analyticsEventRepository.findByShortCodeOrderByTimestampDesc(shortCode);
+        long totalClicks = analyticsEventRepository.countByShortCode(shortCode);
+        var latestEvent = analyticsEventRepository.findFirstByShortCodeOrderByTimestampDesc(shortCode);
+        LOGGER.info("Retrieved analytics summary for shortCode={} totalClicks={}", shortCode, totalClicks);
         return new AnalyticsSummaryResponse(
                 shortCode,
-                events.size(),
-                events.isEmpty() ? null : events.get(0).getTimestamp()
+            totalClicks,
+            latestEvent.map(AnalyticsEventEntity::getTimestamp).orElse(null)
         );
     }
 }

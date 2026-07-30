@@ -7,11 +7,15 @@ spring:
         - id: url-service
           uri: http://localhost:8081
           predicates:
-            - Path=/url/**
+            - Path=/api/v1/urls/**
+        - id: url-redirect
+          uri: http://localhost:8081
+          predicates:
+            - Path=/{shortCode:[0-9A-Za-z]{8}}
         - id: analytics-service
           uri: http://localhost:8082
           predicates:
-            - Path=/analytics/**
+            - Path=/api/v1/analytics/**,/analytics/events/**
 
 server:
   port: 8080
@@ -21,3 +25,7 @@ management:
     web:
       exposure:
         include: health,info
+
+logging:
+  level:
+    org.springframework.cloud.gateway: WARN

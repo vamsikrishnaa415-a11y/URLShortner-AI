@@ -12,6 +12,7 @@ import com.aiurlshortener.analytics.entity.AnalyticsEventEntity;
 import com.aiurlshortener.analytics.repository.AnalyticsEventRepository;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -77,8 +78,9 @@ class AnalyticsServiceImplTest {
                 "203.0.113.10", "Mozilla/5.0"
         );
 
-        when(analyticsEventRepository.findByShortCodeOrderByTimestampDesc("A1b2C3d4"))
-                .thenReturn(List.of(latestEvent, olderEvent));
+        when(analyticsEventRepository.countByShortCode("A1b2C3d4")).thenReturn(2L);
+        when(analyticsEventRepository.findFirstByShortCodeOrderByTimestampDesc("A1b2C3d4"))
+                .thenReturn(Optional.of(latestEvent));
 
         AnalyticsSummaryResponse response = analyticsService.getAnalytics("A1b2C3d4");
 
@@ -89,8 +91,9 @@ class AnalyticsServiceImplTest {
 
     @Test
     void returnsZeroClicksWhenNoEventsHaveBeenStored() {
-        when(analyticsEventRepository.findByShortCodeOrderByTimestampDesc("A1b2C3d4"))
-                .thenReturn(List.of());
+        when(analyticsEventRepository.countByShortCode("A1b2C3d4")).thenReturn(0L);
+        when(analyticsEventRepository.findFirstByShortCodeOrderByTimestampDesc("A1b2C3d4"))
+                .thenReturn(Optional.empty());
 
         AnalyticsSummaryResponse response = analyticsService.getAnalytics("A1b2C3d4");
 
