@@ -1,10 +1,10 @@
-# Architecture Decision Log
+# Architecture Decisions
 
 ## Purpose
 
 This log records foundational technology decisions for the URL Shortener assignment. The decisions favor a production-minded structure while preserving a low-friction local development experience.
 
-## ADR-001: Java 17
+## Java 17
 
 ### Decision
 
@@ -20,7 +20,7 @@ Java 17 is a long-term support release with mature tooling, strong ecosystem com
 - The project can use modern Java language and standard-library capabilities available in Java 17.
 - Compatibility with older Java runtimes is not a goal.
 
-## ADR-002: Spring Boot 3.x
+## Spring Boot 3.x
 
 ### Decision
 
@@ -36,7 +36,7 @@ Spring Boot provides convention-driven configuration, embedded web-server suppor
 - The project will use Jakarta-based APIs where applicable.
 - Framework upgrades must account for Spring Boot's managed dependency versions.
 
-## ADR-003: H2 Database
+## H2 Database
 
 ### Decision
 
@@ -53,7 +53,7 @@ H2 is embedded, fast to start, and requires no external server. It enables repea
 - H2 must be replaced by a durable production relational database before production deployment.
 - SQL behavior and migrations require production-database validation later.
 
-## ADR-004: Maven
+## Maven
 
 ### Decision
 
@@ -69,7 +69,7 @@ Maven is widely understood in Java teams, provides deterministic dependency reso
 - A parent Maven build can coordinate shared dependency versions and service modules.
 - Dependency additions should be deliberate to keep the assignment lightweight.
 
-## ADR-005: Microservices
+## Microservices
 
 ### Decision
 
@@ -99,3 +99,111 @@ The decision is intentionally restrained. The assignment does not require the op
 | Gradle | Maven is specified and provides the required multi-module build support. |
 | Single monolith | It obscures the requested microservice-oriented service ownership and future analytics isolation. |
 | Full distributed platform | It adds operational complexity explicitly excluded from the assignment. |
+
+## REST APIs
+
+### Decision
+
+Use REST APIs for public and inter-service communication.
+
+### Reason
+
+REST is familiar, inspectable, and sufficient for the synchronous create, redirect, and analytics workflows.
+
+### Alternative Considered
+
+Use GraphQL or message-driven communication.
+
+### Why Rejected
+
+GraphQL adds an unnecessary query layer, while messaging requires infrastructure that is out of scope.
+
+## No Docker
+
+### Decision
+
+Do not use Docker for this assignment.
+
+### Reason
+
+Java, Maven, and embedded H2 provide a self-contained local development experience.
+
+### Alternative Considered
+
+Containerize every service and dependency.
+
+### Why Rejected
+
+Container build and runtime concerns do not improve the required URL shortening behavior.
+
+## No Kafka
+
+### Decision
+
+Do not use Kafka.
+
+### Reason
+
+The initial analytics workflow does not require a distributed event platform.
+
+### Alternative Considered
+
+Publish redirect events through Kafka.
+
+### Why Rejected
+
+Kafka adds operational complexity that is disproportionate to the assignment.
+
+## No Redis
+
+### Decision
+
+Do not use Redis.
+
+### Reason
+
+An indexed H2 lookup is sufficient for expected local redirect traffic.
+
+### Alternative Considered
+
+Cache short-code mappings in Redis.
+
+### Why Rejected
+
+Caching is premature without measured load and adds consistency concerns.
+
+## No Security Layer
+
+### Decision
+
+Do not implement authentication or authorization in the initial assignment.
+
+### Reason
+
+The defined scope focuses on anonymous URL creation, redirection, and basic analytics.
+
+### Alternative Considered
+
+Add OAuth- or JWT-based authentication and authorization.
+
+### Why Rejected
+
+These capabilities are explicitly out of scope and would distract from the core domain behavior.
+
+## No Eureka
+
+### Decision
+
+Do not use Eureka service discovery.
+
+### Reason
+
+The planned topology is small and static, so local configuration is sufficient.
+
+### Alternative Considered
+
+Register services dynamically through Eureka.
+
+### Why Rejected
+
+Service discovery adds a platform dependency that is not justified by the assignment and is explicitly excluded.

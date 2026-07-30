@@ -1,30 +1,43 @@
-# Architecture
+# System Overview
 
-## High Level Architecture
+The URL Shortener creates compact links, redirects visitors to original destinations, and provides basic click analytics. It is planned as a small REST-based system using Java 17, Spring Boot 3.x, Maven, and H2 for local development.
 
-The target system is a small REST-based microservice architecture for URL creation, lookup, and redirection. An API Gateway is the public entry point. It routes requests to the URL Service, which owns the URL lifecycle and redirect-resolution logic. An Analytics Service is defined as a future, separately deployable boundary for recording redirect events; it is not implemented in the initial assignment scope.
+# Architecture Goals
+
+- Keep URL creation, redirection, and analytics responsibilities explicit.
+- Keep the redirect path lightweight and independent from analytics retrieval.
+- Support local development without external infrastructure.
+- Preserve clear boundaries for future scaling while avoiding unnecessary enterprise components.
+
+# Why Microservices
+
+Microservices provide explicit ownership for URL lifecycle and analytics workloads, which can evolve and scale differently. This assignment limits the design to a small set of synchronous REST services and excludes service discovery, brokers, distributed cache, and orchestration.
+
+# High Level Architecture
+
+The API Gateway is the public entry point. It routes URL creation and redirect requests to the URL Service and analytics requests to the Analytics Service. The URL Service owns URL lifecycle and redirect resolution, while the Analytics Service owns click metrics.
 
 Services communicate synchronously over HTTP. Each service owns its data store. For local development, H2 supplies simple embedded relational persistence without external infrastructure.
 
-## Why Microservices
+```mermaid
+flowchart LR
+    Client[Client] -->|REST| Gateway[API Gateway]
+    Gateway -->|URL creation and redirects| UrlService[URL Service]
+    Gateway -->|Analytics requests| AnalyticsService[Analytics Service]
+    UrlService --> UrlDatabase[(URL H2 Database)]
+    UrlService -->|Successful redirect event| AnalyticsService
+    AnalyticsService --> AnalyticsDatabase[(Analytics H2 Database)]
+```
 
-Microservices provide explicit ownership boundaries for the parts of the system that will evolve at different rates:
-
-- URL management requires strong validation, uniqueness, and link lifecycle rules.
-- Redirect resolution is latency-sensitive and can scale independently from management traffic.
-- Analytics is write-heavy and can grow independently of the primary URL lifecycle.
-
-For this assignment, these boundaries are architectural rather than an invitation to add operational complexity. The initial implementation remains small, uses REST only, and excludes service discovery, messaging, distributed caching, and container orchestration.
-
-## Service Responsibilities
+# Components
 
 | Component | Responsibilities | Owns |
 | --- | --- | --- |
 | API Gateway | Public request entry, routing, cross-cutting request handling, and consistent external error boundaries. | Route configuration and gateway-level policies. |
 | URL Service | Short-code generation, destination validation, URL lifecycle management, metadata lookup, and redirect eligibility/resolution. | URL records and business rules. |
-| Analytics Service | Future capture, storage, and query of redirect events and aggregate metrics. It is not part of the initial functional release. | Analytics events and derived aggregates. |
+| Analytics Service | Capture successful redirect events and retrieve basic click metrics. | Analytics events and derived aggregates. |
 
-## API Gateway Responsibilities
+## API Gateway
 
 - Provide a single public base URL for client requests.
 - Route management requests, such as `/api/v1/urls`, to the URL Service.
@@ -35,7 +48,7 @@ For this assignment, these boundaries are architectural rather than an invitatio
 
 Authentication, authorization, rate limiting, and TLS termination are not implemented in the initial assignment. Their future introduction must remain gateway concerns rather than URL-domain concerns where appropriate.
 
-## URL Service Responsibilities
+## URL Service
 
 - Validate destination URLs as absolute HTTP or HTTPS addresses.
 - Generate URL-safe short codes and prevent collisions through persistence-level uniqueness.
@@ -45,20 +58,16 @@ Authentication, authorization, rate limiting, and TLS termination are not implem
 - Persist URL data in its own H2 database during local development.
 - Keep controller, service, domain, and persistence responsibilities separate within the service.
 
-## Analytics Service Responsibilities
+## Analytics Service
 
-The Analytics Service is a documented future boundary and is intentionally not implemented in this commit or the initial functional scope.
-
-When introduced, it will:
-
-- Record redirect events without changing URL Service ownership of link data.
+The Analytics Service records successful redirect events without changing URL Service ownership of link data. It will:
 - Store event attributes such as short code, timestamp, and non-sensitive request context.
 - Produce aggregate usage metrics for a short code.
 - Apply retention and privacy policies before exposing analytics data.
 
-The current constraints prohibit Kafka, RabbitMQ, and Redis. A later implementation can begin with a synchronous HTTP notification or a persisted outbox pattern, chosen only when analytics becomes in scope.
+The current constraints prohibit Kafka, RabbitMQ, and Redis. The initial design uses a simple REST interaction; more complex delivery is deferred until justified.
 
-## H2 Database Usage
+## H2 Database
 
 H2 is used only for local development and automated testing. It keeps the assignment self-contained, supports relational constraints such as a unique short code, and allows repeatable test data setup.
 
@@ -66,7 +75,7 @@ The URL Service owns an H2 database containing URL records. The future Analytics
 
 H2 is not a production durability or scaling strategy: data may be reset locally, and database behavior must be verified against a production database before a production release.
 
-## Request Flow
+# Request Flow
 
 ### Create a Short URL
 
@@ -83,27 +92,9 @@ H2 is not a production durability or scaling strategy: data may be reset locally
 3. The URL Service retrieves the URL record and verifies that it is active.
 4. For an active record, the service returns an HTTP redirect with the destination URL.
 5. For an unknown or inactive record, the service returns a documented non-redirect response.
-6. A future Analytics Service may record the successful redirect without blocking the redirect response.
+6. The Analytics Service records the successful redirect without preventing a valid redirect response.
 
-## Component Diagram
-
-```mermaid
-flowchart LR
-    Client[Client]
-    Gateway[API Gateway]
-    UrlService[URL Service]
-    UrlDb[(URL Service H2 Database)]
-    AnalyticsService[Analytics Service - Future]
-    AnalyticsDb[(Analytics H2 Database - Future)]
-
-    Client -->|REST| Gateway
-    Gateway -->|Management and redirect routes| UrlService
-    UrlService -->|Read and write URL records| UrlDb
-    UrlService -.->|Future redirect event| AnalyticsService
-    AnalyticsService -.->|Store event data| AnalyticsDb
-```
-
-## Sequence Diagram
+# Request Flow Diagram
 
 ```mermaid
 sequenceDiagram
@@ -111,7 +102,7 @@ sequenceDiagram
     participant Gateway as API Gateway
     participant URL as URL Service
     participant Database as URL H2 Database
-    participant Analytics as Analytics Service (Future)
+    participant Analytics as Analytics Service
 
     Client->>Gateway: GET /{shortCode}
     Gateway->>URL: Forward resolution request
@@ -120,14 +111,14 @@ sequenceDiagram
     alt Record exists and is active
         URL-->>Gateway: HTTP redirect and destination Location
         Gateway-->>Client: HTTP redirect
-        URL-->>Analytics: Future non-blocking redirect event
+        URL-->>Analytics: Record successful redirect event
     else Record is missing or inactive
         URL-->>Gateway: Documented error response
         Gateway-->>Client: Error response
     end
 ```
 
-## Folder Structure
+# Folder Structure
 
 The current repository contains documentation only. The planned structure is:
 
@@ -146,7 +137,23 @@ The current repository contains documentation only. The planned structure is:
 
 Each future service module will keep application code, tests, and configuration within its own boundary. The listed modules are architectural intent only and are not created by this documentation commit.
 
-## Design Decisions
+# Service Responsibilities
+
+- API Gateway owns public routing and route-level request handling.
+- URL Service owns validation, short-code generation, URL mapping persistence, and redirects.
+- Analytics Service owns click counts and latest successful redirect timestamps.
+
+# API Contracts
+
+| Method and Path | Service | Purpose |
+| --- | --- | --- |
+| `POST /api/v1/urls` | URL Service | Create a shortened URL. |
+| `GET /{shortCode}` | URL Service | Redirect an active short code. |
+| `GET /api/v1/urls/{shortCode}/analytics` | Analytics Service | Retrieve click count and latest redirect time. |
+
+Management endpoints return JSON. Redirect responses use an HTTP redirect and a `Location` header. Exact schemas and status codes will be added with implementation.
+
+# Design Principles
 
 - Use REST for synchronous, easily inspectable service communication.
 - Make the API Gateway the only public routing boundary.
@@ -156,7 +163,24 @@ Each future service module will keep application code, tests, and configuration 
 - Use H2 to make local execution and tests self-contained.
 - Keep all management endpoints versioned under `/api/v1` while preserving a concise redirect route.
 
-## Tradeoffs
+# Scalability Considerations
+
+- Redirect traffic is read-heavy; URL resolution can scale independently from management operations.
+- Short-code records require a unique indexed lookup.
+- Analytics may grow faster than URL creation and remains independently scalable.
+- H2 supports local development only; production requires durable relational storage.
+
+# Failure Scenarios
+
+| Scenario | Expected Behavior | Mitigation |
+| --- | --- | --- |
+| Unknown or inactive short code | Return a documented non-redirect response. | Verify existence and active status before redirecting. |
+| Invalid destination URL | Return a validation error. | Accept only absolute HTTP or HTTPS URLs. |
+| Short-code collision | Retry code generation. | Enforce database uniqueness. |
+| Analytics failure | Preserve a valid redirect response. | Keep analytics off the redirect success path. |
+| H2 unavailable | Return a controlled server error. | Use repeatable local setup; replace H2 before production. |
+
+# Tradeoffs
 
 | Decision | Benefit | Cost |
 | --- | --- | --- |
@@ -176,11 +200,3 @@ Each future service module will keep application code, tests, and configuration 
 | Analytics coupling | Event capture could delay redirects. | Treat analytics as non-blocking and isolate it from redirect success. |
 | H2 differences | Production behavior may differ from local tests. | Add production database compatibility testing before production use. |
 | Open redirect abuse | Short links can conceal undesirable destinations. | Restrict schemes to HTTP/HTTPS and consider reputation controls later. |
-
-## Scalability Considerations
-
-- Redirect traffic is expected to be read-heavy; the URL Service can be scaled independently from management operations.
-- The short-code column must be uniquely indexed to keep resolution lookups efficient.
-- H2 is suitable only for local use; production readiness requires a durable relational database per service.
-- The Analytics Service must scale independently because event ingestion can become much larger than URL creation volume.
-- Future caching, rate limiting, asynchronous analytics delivery, and observability may be introduced when justified by measured load. They are deliberately excluded from the initial assignment.
