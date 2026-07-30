@@ -24,7 +24,9 @@ out/
 *.jar
 *.war
 *.ear
+*.dump
 *.log
+logs/
 hs_err_pid*
 replay_pid*
 

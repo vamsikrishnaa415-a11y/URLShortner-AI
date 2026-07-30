@@ -1,22 +1,29 @@
-# Business Requirements Document
+# Business Requirement Document
 
 ## Business Objective
 
-Deliver a simple, dependable URL shortening system that lets users create compact links for long destination URLs and resolve those links quickly through a REST-based service. The assignment demonstrates disciplined, AI-assisted software engineering through clear requirements, incremental delivery, testability, and maintainable service boundaries.
+Deliver a simple, dependable URL Shortener that creates compact links, redirects visitors to original destinations, and provides click analytics. The assignment demonstrates AI-assisted engineering through clear requirements, clean architecture, maintainable code, automated testing, and incremental Git commits.
 
 ## Problem Statement
 
-Long URLs are difficult to share, display, and track manually. Users need a service that produces unique short links, redirects visitors to the intended destination, and allows link owners or operators to inspect and manage the links they create. The solution must remain easy to run and review locally without unnecessary distributed infrastructure.
+Long URLs are difficult to share, display, and measure. Users need a service that produces unique short links, redirects visitors reliably, and exposes basic usage information for each link. The solution must remain easy to run and review locally without unnecessary enterprise infrastructure.
 
-## Scope
+## Stakeholders
+
+- Product owner: defines the expected URL shortening, redirect, and analytics behavior.
+- End users: create and share shortened URLs.
+- Link visitors: use a short URL to reach its original destination.
+- Development team: implements, tests, and maintains the system through incremental commits.
+- Interview reviewers: assess architectural decisions, code quality, testability, and delivery discipline.
+
+## Project Scope
 
 ### In Scope
 
 - Create a shortened URL from a valid destination URL.
 - Generate a unique, URL-safe short code.
 - Resolve an active short code through an HTTP redirect.
-- Retrieve metadata for an existing short URL.
-- Update supported URL metadata and deactivate a short URL.
+- Retrieve basic click analytics for a shortened URL.
 - Persist URL records using H2 for local development.
 - Expose REST APIs implemented with Java 17 and Spring Boot 3.x.
 - Cover core business behavior with JUnit 5 and Mockito tests.
@@ -26,34 +33,57 @@ Long URLs are difficult to share, display, and track manually. Users need a serv
 - User authentication and authorization.
 - Custom domains and user-defined short codes.
 - QR-code generation.
-- Analytics dashboards, click aggregation, or reporting.
+- Advanced analytics dashboards, geographic reporting, and user profiling.
 - Distributed cache, asynchronous messaging, service discovery, and container orchestration.
 - External production database provisioning and cloud deployment automation.
 
 ## Functional Requirements
 
-1. The system shall accept a valid absolute HTTP or HTTPS destination URL and create a shortened URL.
-2. The system shall generate a unique short code that contains only URL-safe characters.
-3. The system shall persist the short code, destination URL, creation timestamp, update timestamp, and active status.
-4. The system shall redirect a request for an active short code to its associated destination URL using an HTTP redirect response.
-5. The system shall return a clear not-found response when a requested short code does not exist.
-6. The system shall not redirect an inactive short code and shall return an appropriate client-visible response.
-7. The system shall provide a metadata lookup endpoint for an existing short code.
-8. The system shall allow supported metadata or active status to be updated for an existing short code.
-9. The system shall validate request input and return consistent error responses for invalid URLs, malformed requests, and invalid state changes.
-10. The system shall expose versioned REST API paths for management operations.
+### FR-1 Create Short URL
+
+The system shall accept a valid absolute HTTP or HTTPS destination URL, generate a unique URL-safe short code, persist the mapping, and return the resulting shortened URL.
+
+### FR-2 Redirect URL
+
+The system shall resolve an active short code and return an HTTP redirect to its original destination URL. Unknown or inactive short codes shall not redirect.
+
+### FR-3 Retrieve Analytics
+
+The system shall record successful redirects and provide basic analytics for a short code, including its total click count and most recent successful redirect time.
+
+### FR-4 Input Validation
+
+The system shall validate required request fields and accept only well-formed absolute HTTP or HTTPS destination URLs. It shall reject malformed requests and invalid short-code input.
+
+### FR-5 Error Handling
+
+The system shall return consistent, documented HTTP error responses for validation failures, missing short codes, inactive links, and unexpected server errors. Error responses shall not expose implementation details.
 
 ## Non Functional Requirements
 
-- The application shall be compatible with Java 17 and Spring Boot 3.x.
-- The implementation shall use Maven for build and dependency management.
-- REST APIs shall use JSON for management request and response payloads.
-- Code shall follow clear separation of controller, service, persistence, and domain responsibilities.
-- Core business behavior shall have automated unit tests using JUnit 5 and Mockito.
-- The application shall provide deterministic, meaningful HTTP status codes and error payloads.
-- The local solution shall start without external infrastructure beyond the bundled H2 database.
-- The design shall support future replacement of H2 with a production relational database without changing API contracts.
-- Sensitive configuration values shall not be committed to source control.
+### Performance
+
+Redirect resolution shall use an indexed short-code lookup and should complete quickly under normal local-development load. URL creation and analytics retrieval shall remain responsive for expected assignment usage.
+
+### Availability
+
+The system shall provide deterministic responses when its local dependencies are available. A failing analytics capability must not prevent a valid URL redirect.
+
+### Maintainability
+
+The implementation shall use Java 17, Spring Boot 3.x, Maven, REST APIs, JUnit 5, and Mockito. It shall separate API, business, persistence, and analytics responsibilities, with focused tests for core behavior.
+
+### Scalability
+
+The design shall allow redirect resolution and analytics collection to scale independently in a future deployment. H2 is limited to local development and can be replaced by a production relational database without changing API contracts.
+
+### Security
+
+The system shall allow only HTTP and HTTPS destinations, validate input, avoid exposing internal errors, and keep sensitive configuration out of source control. Authentication and authorization are not part of this assignment.
+
+### Usability
+
+Management APIs shall use clear JSON payloads, versioned routes, meaningful HTTP status codes, and consistent error responses. Documentation shall explain the planned API behavior and local execution approach.
 
 ## Assumptions
 
@@ -62,6 +92,7 @@ Long URLs are difficult to share, display, and track manually. Users need a serv
 - Short codes are generated by the system rather than chosen by end users.
 - Destination URLs are public HTTP or HTTPS locations.
 - Link ownership, login, and access control are not required for the initial assignment.
+- Basic analytics are limited to successful redirect counts and latest redirect time.
 - AI assistance may be used for engineering productivity, but generated changes will be reviewed and tested like any other code.
 
 ## Constraints
@@ -79,26 +110,25 @@ Long URLs are difficult to share, display, and track manually. Users need a serv
 | Short-code collisions | A link could resolve to the wrong destination or fail creation. | Enforce uniqueness at persistence level and retry code generation on collision. |
 | Open redirect abuse | The service could be used to mask unsafe destinations. | Validate HTTP/HTTPS destinations and document that reputation scanning is a future enhancement. |
 | In-memory database limitations | Data is lost on restart and does not model production durability. | Limit H2 to local development and preserve database access behind a persistence abstraction. |
-| Unbounded redirect traffic | Redirect handling could become a bottleneck. | Keep resolution logic lightweight and defer caching and horizontal scaling to a future phase. |
+| Unbounded redirect traffic | Redirect handling or analytics writes could become a bottleneck. | Keep redirect lookup lightweight and allow analytics to scale independently in a future phase. |
 | AI-generated defects | Generated code may violate requirements or introduce subtle faults. | Require code review, automated tests, and incremental commits. |
 
 ## Acceptance Criteria
 
 1. A client can submit a valid HTTP or HTTPS URL and receive a unique short code and shortened URL representation.
 2. A request to an active short code returns a redirect to the original destination URL.
-3. A request to an unknown short code returns a documented not-found response.
-4. A deactivated short code no longer redirects to its destination.
+3. Each successful redirect increments the associated click count and updates the latest redirect time.
+4. A request for analytics returns the basic metrics for an existing short code.
 5. Invalid destination URLs and malformed request bodies receive consistent validation errors.
-6. URL metadata can be retrieved for an existing short code.
-7. Core URL creation, lookup, redirect eligibility, and validation logic are covered by automated unit tests.
+6. A request to an unknown or inactive short code returns a documented non-redirect response.
+7. Core creation, redirect, analytics, validation, and error-handling logic are covered by automated unit tests.
 8. The application runs locally with Java 17, Maven, Spring Boot 3.x, and H2, without excluded infrastructure components.
-9. The project documentation explains architecture, run instructions, API intent, and incremental commit strategy.
 
 ## Future Enhancements
 
 - Custom short codes and branded domains.
 - Link expiration dates and scheduled cleanup.
-- Click analytics and privacy-conscious aggregate reporting.
+- Advanced click analytics and privacy-conscious aggregate reporting.
 - Destination safety checks and configurable allow/block lists.
 - Authentication, authorization, and per-user link management.
 - Rate limiting and abuse prevention.
